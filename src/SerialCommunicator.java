@@ -1,0 +1,158 @@
+import java.io.InputStream;
+import java.io.OutputStream;
+import gnu.io.CommPortIdentifier; 
+import gnu.io.SerialPort;
+import gnu.io.SerialPortEvent; 
+import gnu.io.SerialPortEventListener; 
+
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Future;
+
+public class SerialCommunicator implements SerialPortEventListener {
+	SerialPort serialPort;
+        /** The port we're normally going to use. */
+	private static final String PORT_NAMES[] = { 
+			"/dev/tty.usbserial-A9007UX1", // Mac OS X
+			"/dev/ttyUSB0", // Linux
+			"COM3", // Windows
+      "/dev/tty.usbserial-FTE3P3CH", // another Mac possibility
+      "/dev/tty.usbserial-FTE3P2H0", // another Mac possibility
+      "/dev/tty.usbserial-FTE3TBJ1", // another Mac possibility
+      "/dev/tty.usbserial-FTE3P2VF", // another Mac possibility
+	};
+	
+	/** Buffered input stream from the port */
+	private InputStream input;
+	/** The output stream to the port */
+	private OutputStream output;
+	/** Milliseconds to block while waiting for port open */
+	private static final int TIME_OUT = 2000;
+	/** Default bits per second for COM port. */
+	private static int DATA_RATE;
+  private boolean gotPort = false;
+	
+	// create a thread safe queue to store input strings
+	private ArrayBlockingQueue<String> sharedBuffer;
+	
+  public boolean gotPort(){
+    return gotPort;
+  }
+
+	public SerialCommunicator(ArrayBlockingQueue<String> buffer, int baudrate) {
+		// set the shared buffer
+		DATA_RATE = baudrate;
+		sharedBuffer = buffer;
+		this.open();
+
+	}
+	
+	
+	public synchronized void open(){
+		
+		CommPortIdentifier portId = null;
+		Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
+//		ArrayList<CommPortIdentifier> commPortsList = new ArrayList<CommPortIdentifier>();
+		
+		// iterate through, looking for the port
+		while (portEnum.hasMoreElements()) {
+			CommPortIdentifier currPortId = (CommPortIdentifier) portEnum.nextElement();
+			if (currPortId.getName().startsWith("/dev/tty.usbserial-")){
+				//commPortsList.add(currPortId);
+				portId = currPortId;
+				gotPort = true;
+				System.out.println("Connected to serial port: " + currPortId.getName());
+				break;
+			}
+			
+			else{
+				for (String portName : PORT_NAMES) {
+					if (currPortId.getName().equals(portName)) {
+						portId = currPortId;
+						gotPort = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if (portId == null) {
+			System.out.println("Could not find COM port.");
+			return;
+		}
+
+		try {
+			// open serial port, and use class name for the appName.
+			serialPort = (SerialPort) portId.open(this.getClass().getName(),
+					TIME_OUT);
+
+			// set port parameters
+			serialPort.setSerialPortParams(DATA_RATE,
+					SerialPort.DATABITS_8,
+					SerialPort.STOPBITS_1,
+					SerialPort.PARITY_NONE);
+
+			// open the streams
+			input = serialPort.getInputStream();
+			output = serialPort.getOutputStream();
+
+			// add event listeners
+			serialPort.addEventListener(this);
+			serialPort.notifyOnDataAvailable(true);
+		} catch (Exception e) {
+			System.err.println(e.toString());
+		}		
+	}
+	public synchronized void reset(){
+		this.close();
+		this.open();
+	}
+	/**
+	 * This should be called when you stop using the port.
+	 * This will prevent port locking on platforms like Linux.
+	 */
+	public synchronized void close() {
+		if (serialPort != null) {
+			serialPort.removeEventListener();
+			serialPort.close();
+			
+		}
+		System.out.println("Serial Port Closing.");
+	}
+
+	/**
+	 * Handle an event on the serial port. Read the data and print it.
+	 */
+	public synchronized void serialEvent(SerialPortEvent oEvent) {
+		if (oEvent.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
+			try {
+				int available = input.available();
+				byte chunk[] = new byte[available];
+				input.read(chunk, 0, available);
+				// add the serial input to the shared buffer
+				sharedBuffer.put(new String(chunk));
+			} catch (Exception e) {
+				System.err.println(e.toString()+ '\n');
+			}
+		}
+		// Ignore all the other eventTypes, but you should consider the other ones.
+	}
+	
+	
+	public synchronized void serialWrite(String outputString){
+		try{
+		output.write(outputString.getBytes());
+		}
+		catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
+	
+	
+//	public static void main(String[] args) throws Exception {
+//		SerialTest main = new SerialTest();
+//		main.initialize();
+//		System.out.println("Started");
+//	}
+}

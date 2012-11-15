@@ -1,0 +1,38 @@
+10
+
+dir
+21
+svn+ssh://jmillerm.dyndns.org/svn/bikeGenDashboard/build
+svn+ssh://jmillerm.dyndns.org/svn
+
+
+
+2011-11-29T23:05:17.942111Z
+21
+jacob
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+78d2459b-0ba7-4e76-a9e6-d5ec73495316
+
+
+
+
+
+
+0
+
+classes
+dir
+
