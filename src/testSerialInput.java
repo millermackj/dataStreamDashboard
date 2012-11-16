@@ -31,8 +31,8 @@ public class testSerialInput implements Runnable {
 	public synchronized void run() {
 		try{
 			// print header
-			inputBuffer.put("<h>sysTime\tBattV\tCurrent\tDutyCycle\tCadence\tGenSpeed</h>");
-			inputBuffer.put("<u>s\tmillivolts\tmilliamps\tpercent\thz\thz</u>");
+			inputBuffer.put("<h>sysTime\tBattV\tCurrent\tDutyCycle\tCadence\tGenSpeed\tconst</h>");
+			inputBuffer.put("<u>s\tmillivolts\tmilliamps\tpercent\thz\thz\tconst</u>");
 		}
 		catch(Exception ex){
 			
@@ -47,8 +47,8 @@ public class testSerialInput implements Runnable {
 			try{
 				Thread.sleep(100);
 				inputBuffer.put(String.format("<r>%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t" +
-						"%.3f</r>", (float)time/1000.0 , battV,
-						current, dutyCycle, cadence, genSpeed));
+						"%.3f\t%d</r>", (float)time/1000.0 , battV,
+						current, dutyCycle, cadence, genSpeed,5));
 				if(counter % 10 == 0)
 					inputBuffer.put("<m>message at row " + counter + "</m>");
 			}

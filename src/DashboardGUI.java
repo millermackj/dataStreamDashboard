@@ -39,6 +39,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private SerialCommunicator serialComm;
 	private JCheckBox chkAutoscroll;
 	private JCheckBox msgAutoscroll;
+	private JCheckBox chkGraphInstant;
 	private JFGraph graph;
 	private JComboBox xComboBox;
 	private JComboBox yComboBox;
@@ -99,11 +100,13 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		JPanel messagePanel = new JPanel();
 		JPanel graphPanel = new JPanel();
 		JPanel graphSelectPanel = new JPanel();
+		JPanel checkboxPanel = new JPanel();
 
 		upperPanel.setBorder(paddedBorder);
 		lowerPanel.setBorder(paddedBorder);
 		displayPanel.setBorder(paddedBorder);
 		graphSelectPanel.setBorder(paddedBorder);
+		checkboxPanel.setBorder(paddedBorder);
 		
 		// give box layouts to the panels
 		setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
@@ -112,6 +115,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
 		graphSelectPanel.setLayout(new BoxLayout(graphSelectPanel, BoxLayout.X_AXIS));
 		displayPanel.setLayout(new BoxLayout(displayPanel, BoxLayout.X_AXIS));
+		checkboxPanel.setLayout(new BoxLayout(checkboxPanel, BoxLayout.X_AXIS));
 		lowerPanel.setLayout(new BoxLayout(lowerPanel, BoxLayout.Y_AXIS));
 		
 		messagePanel.setLayout(new BorderLayout());
@@ -162,9 +166,12 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		displayPanel.add(ledDisplayPanel);
 
 		// objects in lower panel
-		chkAutoscroll = new JCheckBox("Autoscroll");
+		chkAutoscroll = new JCheckBox("Autoscroll Text");
 		chkAutoscroll.setSelected(true);
-
+		
+		chkGraphInstant = new JCheckBox("Graph only this instant");
+		chkGraphInstant.addActionListener(this);
+		
 		textArea = new JTextArea(8, 50);
 		textArea.setEditable(false);
 
@@ -175,7 +182,11 @@ public class DashboardGUI extends JFrame implements ActionListener,
 
 		headerDisplay = new JTextArea(1, 50);
 
-		lowerPanel.add(chkAutoscroll);
+		checkboxPanel.add(chkGraphInstant);
+		checkboxPanel.add(chkAutoscroll);
+		
+		lowerPanel.add(checkboxPanel);
+		
 		lowerPanel.add(headerDisplay);
 		lowerPanel.add(scrollPane);
 
@@ -283,6 +294,12 @@ public class DashboardGUI extends JFrame implements ActionListener,
 				System.err.println(e);
 			}
 		} 
+		else if(event.getSource().equals(chkGraphInstant)){
+			graph.setShapesVisible(chkGraphInstant.isSelected());
+			if (chkGraphInstant.isSelected()){
+				graph.clearData();
+			}
+		}
 	}
 
 	private void setGraph() {
@@ -426,10 +443,15 @@ private void parseString(String inputString, Tag tag) {
 										// list
 
 		// graph selected values
+		
+		if(chkGraphInstant.isSelected()){
+			graph.clearData();
+		}
+		
 		graph.addPair(dataList.getLast()[graphXIndex],
 				dataList.getLast()[graphYIndex]);
-		
-		//post values to LED displays according to the selected combo box entry
+
+			//post values to LED displays according to the selected combo box entry
 		for(int i = 0; i < ledPanels.size(); i++){
 			ledPanels.get(i).setNumber(newData[ledComboBoxes.get(i).getSelectedIndex()]);
 		}
