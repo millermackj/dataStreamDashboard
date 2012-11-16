@@ -2,6 +2,7 @@ package graphing;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.util.LinkedList;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -23,8 +24,9 @@ import org.jfree.ui.RectangleInsets;
 public class JFGraph extends JPanel{
 
 	String graphTitle, xAxisLabel, yAxisLabel;
-	private XYSeries theData = new XYSeries(0);
-	private XYDataset dataset = new XYSeriesCollection(theData);
+	private LinkedList<XYSeries> seriesList = new LinkedList<XYSeries>();
+	private XYDataset dataset = new XYSeriesCollection();
+	int primarySeriesIndex = 0;
 	
 	NumberAxis domain;
 	NumberAxis range;
@@ -32,13 +34,17 @@ public class JFGraph extends JPanel{
 	private JFreeChart theChart;
 	
 	private ChartPanel panel;
-		
-	public void addPair(double x, double y){
-		theData.add(x, y);
+	
+	public void addSeries(String seriesName){
+		seriesList.add(new XYSeries(seriesName));
+	}
+	
+	public void addPair(int seriesnum, double x, double y){
+		seriesList.get(seriesnum).add(x, y);
 	}
 	
 	public void clearData(){
-		theData.clear();
+		seriesList.clear();
 	}
 	
 	public void setAxisLabels(String xlabel, String ylabel){
@@ -56,13 +62,8 @@ public class JFGraph extends JPanel{
 		range.setLabel(yAxisLabel);
 	}
 	
-	public void useDataSeries(XYSeries dataSeries){
-		try {
-			theData = dataSeries.createCopy(0, dataSeries.getItemCount() - 1);
-		} catch (CloneNotSupportedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	public void useDataSeries(int seriesNum){
+		primarySeriesIndex = seriesNum;
 	}
 	
 	public JFGraph(String graphTitle, String xAxisLabel, String yAxisLabel){

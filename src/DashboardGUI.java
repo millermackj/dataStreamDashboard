@@ -298,10 +298,13 @@ public class DashboardGUI extends JFrame implements ActionListener,
 						: "null");
 		// XYSeries tempDataSeries = new XYSeries(0);
 
-		for (Float[] dataRow : dataList) {
-			if (graphXIndex < dataRow.length && graphYIndex <= dataRow.length)
-				graph.addPair(dataRow[graphXIndex], dataRow[graphYIndex]);
-		}
+		graph.useDataSeries(graphYIndex);		
+//		int i = 0;
+//		for (Float[] dataRow : dataList) {
+//			if (graphXIndex < dataRow.length && graphYIndex <= dataRow.length)
+//				graph.addPair(i, dataRow[graphXIndex], dataRow[graphYIndex]);
+//			i++;
+//		}
 
 	}
 
@@ -426,7 +429,7 @@ private void parseString(String inputString, Tag tag) {
 										// list
 
 		// graph selected values
-		graph.addPair(dataList.getLast()[graphXIndex],
+		graph.addPair(graphYIndex, dataList.getLast()[graphXIndex],
 				dataList.getLast()[graphYIndex]);
 		
 		//post values to LED displays according to the selected combo box entry
