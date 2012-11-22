@@ -59,6 +59,19 @@ public class JFGraph extends JPanel{
 		range.setLabel(yAxisLabel);
 	}
 	
+	public void setRangeX(double low, double high){
+		plot.getDomainAxis().setRange(low, high);
+	}
+	
+	public void setRangeY(double low, double high){
+		plot.getRangeAxis().setRange(low, high);
+	}
+	
+	
+	public double getCurrentX(){
+		return (Double) theData.getX(theData.getItemCount()-1);
+	}
+	
 	public void useDataSeries(XYSeries dataSeries){
 		try {
 			theData = dataSeries.createCopy(0, dataSeries.getItemCount() - 1);
@@ -125,6 +138,7 @@ public class JFGraph extends JPanel{
 		BorderFactory.createLineBorder(Color.black))); add(panel);
 		this.add(panel);
 	}
+
 
 	
 

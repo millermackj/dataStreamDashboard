@@ -40,6 +40,8 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private JCheckBox chkAutoscroll;
 	private JCheckBox msgAutoscroll;
 	private JCheckBox chkGraphInstant;
+	private JTextField txtRollTime;
+	private JLabel lblRollTime = new JLabel("Roll time (s): ");
 	private JFGraph graph;
 	private JComboBox xComboBox;
 	private JComboBox yComboBox;
@@ -74,6 +76,8 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private int graphXIndex = 0;
 	private int graphYIndex = 0;
 
+	private double rolltime = 10;
+	
 	private boolean stopCollecting = false;
 
 	public DashboardGUI(int width, int height,
@@ -172,6 +176,10 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		chkGraphInstant = new JCheckBox("Graph only this instant");
 		chkGraphInstant.addActionListener(this);
 		
+		txtRollTime = new JTextField("10", 1); // default 10 seconds
+		txtRollTime.setMaximumSize(new Dimension(60, Integer.MAX_VALUE));
+		txtRollTime.addActionListener(this);
+		
 		textArea = new JTextArea(8, 50);
 		textArea.setEditable(false);
 
@@ -182,6 +190,9 @@ public class DashboardGUI extends JFrame implements ActionListener,
 
 		headerDisplay = new JTextArea(1, 50);
 
+		checkboxPanel.add(lblRollTime);
+		
+		checkboxPanel.add(txtRollTime);
 		checkboxPanel.add(chkGraphInstant);
 		checkboxPanel.add(chkAutoscroll);
 		
@@ -300,6 +311,14 @@ public class DashboardGUI extends JFrame implements ActionListener,
 				graph.clearData();
 			}
 		}
+		else if(event.getSource().equals(txtRollTime)){
+			try{
+				rolltime = Double.parseDouble(txtRollTime.getText());
+			}
+			catch (NumberFormatException e){
+				
+			}
+		}
 	}
 
 	private void setGraph() {
@@ -316,7 +335,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		// XYSeries tempDataSeries = new XYSeries(0);
 
 		for (Float[] dataRow : dataList) {
-			if (graphXIndex < dataRow.length && graphYIndex <= dataRow.length)
+			if (graphXIndex <= dataRow.length && graphYIndex <= dataRow.length)
 				graph.addPair(dataRow[graphXIndex], dataRow[graphYIndex]);
 		}
 
@@ -447,11 +466,15 @@ private void parseString(String inputString, Tag tag) {
 		if(chkGraphInstant.isSelected()){
 			graph.clearData();
 		}
+		else 
+			graph.setRangeX((double)dataList.getLast()[graphXIndex] - rolltime, (double)dataList.getLast()[graphXIndex]);		
+
 		
 		graph.addPair(dataList.getLast()[graphXIndex],
 				dataList.getLast()[graphYIndex]);
 
-			//post values to LED displays according to the selected combo box entry
+
+		//post values to LED displays according to the selected combo box entry.
 		for(int i = 0; i < ledPanels.size(); i++){
 			ledPanels.get(i).setNumber(newData[ledComboBoxes.get(i).getSelectedIndex()]);
 		}
