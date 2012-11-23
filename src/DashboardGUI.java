@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -23,7 +24,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private static final long serialVersionUID = 1L;
 	private String[] headerLabels;
 	private String[] unitsLabels;
-	private LinkedList<Float[]> dataList;
+	private LinkedBlockingDeque<Float[]> dataList;
 	private JScrollPane scrollPane;
 	private JTextArea textArea;
 	private JScrollPane msgScrollPane;
@@ -84,7 +85,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			ArrayBlockingQueue<String> outputBuffer,
 			SerialCommunicator serialComm) throws IOException {
 		this.outputBuffer = outputBuffer;
-		dataList = new LinkedList<Float[]>();
+		dataList = new LinkedBlockingDeque<Float[]>();
 		this.setSize(width, height);
 		initialize();
 		this.serialComm = serialComm;
@@ -294,7 +295,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			// reset graph
 			graph.clearData();
 			// delete data list
-			dataList = new LinkedList<Float[]>();
+			dataList = new LinkedBlockingDeque<Float[]>();
 			// clear text and message areas
 			textArea.setText("");
 			messageArea.setText("");
