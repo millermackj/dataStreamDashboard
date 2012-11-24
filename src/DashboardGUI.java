@@ -15,6 +15,8 @@ import javax.swing.*;
 import javax.swing.border.Border;
 
 import graphing.*;
+
+import org.jfree.base.log.PadMessage;
 import org.jfree.data.xy.XYSeries;
 import java.util.LinkedList;
 import java.util.ArrayList;
@@ -41,13 +43,32 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private JCheckBox chkAutoscroll;
 	private JCheckBox msgAutoscroll;
 	private JCheckBox chkGraphInstant;
+	
+	private ButtonGroup grpLimitsRadio = new ButtonGroup();
+	private JRadioButton radRoll = new JRadioButton("Rolling X");
+	private JRadioButton radManual = new JRadioButton("Manual Limits");
+	
 	private JTextField txtRollTime;
-	private JLabel lblRollTime = new JLabel("Roll time (s): ");
+	
+	private JLabel lblXmin = new JLabel("X min:");
+	private JTextField txtXmin;
+	private JLabel lblXmax = new JLabel("X max:");
+	private JTextField txtXmax;
+	private JLabel lblYmin = new JLabel("Y min:");
+	private JTextField txtYmin;
+	private JLabel lblYmax = new JLabel("Y max:");
+	private JTextField txtYmax;
+	
+	private ArrayList<JComponent> manualList = new ArrayList<JComponent>();
+	private ArrayList<JComponent> rollList = new ArrayList<JComponent>();
+	
+	private JLabel lblRollTime = new JLabel("Roll X: ");
 	private JFGraph graph;
 	private JComboBox xComboBox;
 	private JComboBox yComboBox;
 	
 	private ArrayList<JComboBox> ledComboBoxes;
+	private ArrayList<JCheckBox> ledCheckBoxes;
 	
 	private JPanel ledDisplayPanel = new JPanel();
 	private ArrayList<LEDPanel> ledPanels;
@@ -58,6 +79,9 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private boolean noHeader = true;
 	private boolean autoColumnSelect = true;
 	private File saveDirectory = new File(""); // directory where last file was saved
+	private boolean ignoreDropdownEvents = true;
+	
+	private ArrayList<Integer> selectedYtraces;
 	
 	// an enumeration of tags
 	private enum Tag {
@@ -141,23 +165,69 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		upperPanel.add(resetConnectionBtn);
 		
 		// objects in graph select panel
-		yComboBox = new JComboBox();
 		xComboBox = new JComboBox();
+		yComboBox = new JComboBox();
 		JLabel xComboLabel = new JLabel("X-data:");
 		JLabel yComboLabel = new JLabel("Y-data:");
 		
-		yComboBox.addActionListener(this);
 		xComboBox.addActionListener(this);
-
+		yComboBox.addActionListener(this);
+		
 		setGraphButton = new JButton("Set Graph");
 		setGraphButton.addActionListener(this);
+
+		Dimension txtDim = new Dimension(200, 20);
 		
+		txtXmin = new JTextField(4);
+		txtXmin.setMaximumSize(txtDim);
+		txtXmin.setMinimumSize(txtDim);
+		txtXmin.setPreferredSize(txtDim);
+		
+		txtXmin.addActionListener(this);
+
+		txtXmax = new JTextField(4);
+		txtXmax.setMaximumSize(txtDim);
+		txtXmax.setMinimumSize(txtDim);
+		txtXmax.setPreferredSize(txtDim);
+		
+		txtXmax.addActionListener(this);
+		
+		txtYmin = new JTextField(4);
+		txtYmin.setMaximumSize(txtDim);
+		txtYmin.setMinimumSize(txtDim);
+		txtYmin.setPreferredSize(txtDim);
+		txtYmin.addActionListener(this);
+
+		
+		txtYmax = new JTextField(4);
+		txtYmax.setMaximumSize(txtDim);
+		txtYmax.setMinimumSize(txtDim);
+		txtYmax.setPreferredSize(txtDim);
+		txtYmax.addActionListener(this);
+		
+		grpLimitsRadio.add(radManual);
+		
+		
+		txtRollTime = new JTextField("10", 4); // default 10 seconds
+		txtRollTime.setMaximumSize(txtDim);
+		txtRollTime.setMinimumSize(txtDim);
+		txtRollTime.setPreferredSize(txtDim);
+		txtRollTime.addActionListener(this);
+		
+		grpLimitsRadio.add(radRoll);
+
+		radManual.addActionListener(this);
+		radRoll.addActionListener(this);
+		
+		radRoll.setSelected(true);
+
 		graphSelectPanel.add(yComboLabel);
 		graphSelectPanel.add(yComboBox);
-		graphSelectPanel.add(setGraphButton);
+
+		//graphSelectPanel.add(setGraphButton);
+		
 		graphSelectPanel.add(xComboLabel);
 		graphSelectPanel.add(xComboBox);
-
 		
 		graphPanel.add(graph);
 		graphPanel.add(graphSelectPanel);
@@ -174,12 +244,8 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		chkAutoscroll = new JCheckBox("Autoscroll Text");
 		chkAutoscroll.setSelected(true);
 		
-		chkGraphInstant = new JCheckBox("Graph only this instant");
+		chkGraphInstant = new JCheckBox("Plot instant only");
 		chkGraphInstant.addActionListener(this);
-		
-		txtRollTime = new JTextField("10", 1); // default 10 seconds
-		txtRollTime.setMaximumSize(new Dimension(60, Integer.MAX_VALUE));
-		txtRollTime.addActionListener(this);
 		
 		textArea = new JTextArea(8, 50);
 		textArea.setEditable(false);
@@ -190,12 +256,41 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		entryField.addActionListener(this);
 
 		headerDisplay = new JTextArea(1, 50);
+				
+		rollList.add(lblRollTime);
+		rollList.add(txtRollTime);
+			
+		manualList.add(lblYmin);
+		manualList.add(txtYmin);
+		manualList.add(lblYmax);
+		manualList.add(txtYmax);
+				
+		manualList.add(lblXmin);
+		manualList.add(txtXmin);
+		manualList.add(lblXmax);
+		manualList.add(txtXmax);
 
-		checkboxPanel.add(lblRollTime);
-		
-		checkboxPanel.add(txtRollTime);
 		checkboxPanel.add(chkGraphInstant);
 		checkboxPanel.add(chkAutoscroll);
+		
+		checkboxPanel.add(radManual);
+		checkboxPanel.add(radRoll);
+		
+		
+		JSeparator vertSeparator = new JSeparator(JSeparator.VERTICAL);
+		vertSeparator.setMaximumSize(new Dimension(15,Integer.MAX_VALUE));
+		checkboxPanel.add(vertSeparator);		
+		
+		for(JComponent component: manualList){
+			checkboxPanel.add(component);
+			component.setVisible(false);
+		}
+		checkboxPanel.add(lblRollTime);
+		checkboxPanel.add(txtRollTime);
+		checkboxPanel.add(Box.createHorizontalGlue());
+	
+		//checkboxParent.add(checkboxPanelLeft, BorderLayout.WEST);
+		//checkboxParent.add(checkboxPanelRight, BorderLayout.EAST);
 		
 		lowerPanel.add(checkboxPanel);
 		
@@ -238,6 +333,8 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		
 		// combo boxes
 		ledComboBoxes = new ArrayList<JComboBox>(numLEDDisplays);
+		ledCheckBoxes = new ArrayList<JCheckBox>(numLEDDisplays);
+		ArrayList<JPanel> panelRows = new ArrayList<JPanel>(numLEDDisplays);
 		
 		for(int i = 0; i < numLEDDisplays; i++){
 			ledPanels.add(new LEDPanel(numLEDDigits));
@@ -246,11 +343,16 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			
 			ledComboBoxes.add(new JComboBox());
 			ledComboBoxes.get(i).addActionListener(this);
+			ledCheckBoxes.add(new JCheckBox());
+			ledCheckBoxes.get(i).addActionListener(this);
+			
 			// add combo box to display panel
-			ledDisplayPanel.add(ledComboBoxes.get(i));
-				
+			panelRows.add(new JPanel());
+			panelRows.get(i).setLayout(new BoxLayout(panelRows.get(i), BoxLayout.X_AXIS));
+			panelRows.get(i).add(ledCheckBoxes.get(i));
+			panelRows.get(i).add(ledComboBoxes.get(i));
+			ledDisplayPanel.add(panelRows.get(i));
 		}
-		
 	}
 	
 	@Override
@@ -271,7 +373,18 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		} else if (event.getSource().equals(setGraphButton)) {
 			setGraph();
 			autoColumnSelect = false;
-		} else if (event.getSource().equals(startStopCollBtn)) {
+		} 
+		else if(event.getSource().equals(xComboBox) && !ignoreDropdownEvents){
+			//System.out.println("xComboBox: " + event.getActionCommand());
+			setGraph();
+			autoColumnSelect = false;
+		}
+		else if(event.getSource().equals(yComboBox) && !ignoreDropdownEvents){
+			//System.out.println("yComboBox: " + event.getActionCommand());
+			setGraph();
+			autoColumnSelect = false;			
+		}
+		else if (event.getSource().equals(startStopCollBtn)) {
 			// toggle data collection
 			stopCollecting = !stopCollecting;
 			if (startStopCollBtn.getText().equals("Stop collecting")) {
@@ -308,9 +421,18 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		} 
 		else if(event.getSource().equals(chkGraphInstant)){
 			graph.setShapesVisible(chkGraphInstant.isSelected());
-			if (chkGraphInstant.isSelected()){
-				graph.clearData();
-			}
+//			if (chkGraphInstant.isSelected()){
+//				radManual.setSelected(true);
+//				for(JComponent component: manualList)
+//					component.setVisible(true);
+//				for(JComponent component: rollList)
+//					component.setVisible(false);
+//				txtXmin.setText(String.format("%.3f", graph.getXmin()));
+//				txtXmax.setText(String.format("%.3f", graph.getXmax()));
+//				txtYmin.setText(String.format("%.3f", graph.getYmin()));
+//				txtYmax.setText(String.format("%.3f", graph.getYmax()));				
+//			}
+			
 		}
 		else if(event.getSource().equals(txtRollTime)){
 			try{
@@ -320,18 +442,78 @@ public class DashboardGUI extends JFrame implements ActionListener,
 				
 			}
 		}
+		else if(event.getSource().equals(radRoll) || event.getSource().equals(radManual)){
+			boolean rollSelected = radRoll.isSelected();
+			for(JComponent component: manualList)
+				component.setVisible(!rollSelected);
+			for(JComponent component: rollList)
+				component.setVisible(rollSelected);
+			
+			if(!rollSelected){ // if manual limits are selected
+					txtXmin.setText(String.format("%.3f", graph.getXmin()));
+					txtXmax.setText(String.format("%.3f", graph.getXmax()));
+					txtYmin.setText(String.format("%.3f", graph.getYmin()));
+					txtYmax.setText(String.format("%.3f", graph.getYmax()));				
+					setPlotRange();
+			}			
+		}
+		
+		else if(event.getSource().equals(txtXmin) 
+				|| event.getSource().equals(txtXmax) 
+				|| event.getSource().equals(txtYmin)
+				|| event.getSource().equals(txtYmax)){
+			setPlotRange();
+		}
+		
 	}
-
+	
+private void setPlotRange(){
+	double xmin, xmax, ymin, ymax;			
+	
+	try{
+		xmin = Double.parseDouble(txtXmin.getText());
+	}
+	catch(NumberFormatException e){
+		txtXmin.setText(Double.toString(xmin = graph.getXmin()));
+	}
+	
+	try{
+		xmax = Double.parseDouble(txtXmax.getText());
+	}
+	catch(NumberFormatException e){
+		txtXmax.setText(Double.toString(xmax = graph.getXmax()));
+	}
+	
+	try{
+		ymin = Double.parseDouble(txtYmin.getText());
+	}
+	catch(NumberFormatException e){
+		txtYmin.setText(Double.toString(ymin = graph.getYmin()));
+	}
+	
+	try{
+		ymax = Double.parseDouble(txtYmax.getText());		
+	}
+	catch(NumberFormatException e){
+		txtYmax.setText(Double.toString(ymax = graph.getYmax()));
+	}
+	
+	graph.setRangeX(xmin, xmax);
+	graph.setRangeY(ymin, ymax);
+	
+}
+	
 	private void setGraph() {
+		ignoreDropdownEvents = true;
 		graphXIndex = xComboBox.getSelectedIndex();
 		graphYIndex = yComboBox.getSelectedIndex();
 
 		// set labels on graph to selected columns from combo box
 		graph.clearData();
 		graph.setAxisLabels(
-				headerLabels.length >= graphXIndex ? headerLabels[graphXIndex]
+				headerLabels.length >= graphXIndex && graphXIndex > -1? headerLabels[graphXIndex]
 						: "null",
-				headerLabels.length >= graphYIndex ? headerLabels[graphYIndex]
+				headerLabels.length >= graphYIndex  && graphYIndex > -1? headerLabels[graphYIndex]
 						: "null");
 		// XYSeries tempDataSeries = new XYSeries(0);
 
@@ -339,7 +521,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			if (graphXIndex <= dataRow.length && graphYIndex <= dataRow.length)
 				graph.addPair(dataRow[graphXIndex], dataRow[graphYIndex]);
 		}
-
+		ignoreDropdownEvents = false;
 	}
 
 	private void refreshHeaderDisplay(String headerString) {
@@ -384,9 +566,11 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		
 		if(autoColumnSelect)
 			setGraph();
+
 	}
 
 	private void populateComboBox(JComboBox comboBox) {
+
 		comboBox.removeAllItems();
 		for (String header : headerLabels) {
 			comboBox.addItem(header);
@@ -467,12 +651,14 @@ private void parseString(String inputString, Tag tag) {
 		if(chkGraphInstant.isSelected()){
 			graph.clearData();
 		}
-		else 
-			graph.setRangeX((double)dataList.getLast()[graphXIndex] - rolltime, (double)dataList.getLast()[graphXIndex]);		
 
-		
+		if(graphXIndex > -1 && graphYIndex > -1)
 		graph.addPair(dataList.getLast()[graphXIndex],
 				dataList.getLast()[graphYIndex]);
+		
+		if(radRoll.isSelected() &&  graphXIndex > -1)
+			graph.setRangeX((double)dataList.getLast()[graphXIndex] - rolltime, 
+					(double)dataList.getLast()[graphXIndex] + 0.01 * rolltime);		
 
 
 		//post values to LED displays according to the selected combo box entry.

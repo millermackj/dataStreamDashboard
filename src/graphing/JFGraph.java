@@ -3,6 +3,7 @@ package graphing;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Shape;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -25,6 +26,7 @@ import org.jfree.ui.RectangleInsets;
 public class JFGraph extends JPanel{
 
 	String graphTitle, xAxisLabel, yAxisLabel;
+	private LinkedBlockingQueue<XYSeries> seriesList;
 	private XYSeries theData = new XYSeries(0);
 	private XYDataset dataset = new XYSeriesCollection(theData);
 	XYItemRenderer renderer0;	
@@ -35,14 +37,48 @@ public class JFGraph extends JPanel{
 	private JFreeChart theChart;
 	private XYPlot plot;
 	private ChartPanel panel;
-		
+	
 	public void addPair(double x, double y){
 		theData.add(x, y);
+	}
+	
+	public void addSeries(XYSeries newSeries){
+		seriesList.add(newSeries);
 	}
 	
 	public void clearData(){
 		theData.clear();
 	}
+	
+	public double[] getPlotLimits(){
+		double limits[] = {getXmin(), getXmax(), getYmin(), getYmax()}; 
+		return limits;
+	}
+	
+	public double getXmin(){
+		return plot.getDomainAxis().getRange().getLowerBound();
+	}
+
+	public double getXmax(){
+		return plot.getDomainAxis().getRange().getUpperBound();
+	}
+	
+	public double getYmin(){
+		return plot.getRangeAxis().getRange().getLowerBound();
+	}
+	
+	public double getYmax(){
+		return plot.getRangeAxis().getRange().getUpperBound();
+	}
+
+	public void setXrange(double xmin, double xmax){
+		plot.getDomainAxis().setRange(xmin, xmax);
+	}
+	
+	public void setYrange(double ymin, double ymax){
+		plot.getRangeAxis().setRange(ymin, ymax);
+	}
+	
 	
 	public void setAxisLabels(String xlabel, String ylabel){
 		setXAxisLabel(xlabel);
@@ -76,7 +112,6 @@ public class JFGraph extends JPanel{
 		try {
 			theData = dataSeries.createCopy(0, dataSeries.getItemCount() - 1);
 		} catch (CloneNotSupportedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
