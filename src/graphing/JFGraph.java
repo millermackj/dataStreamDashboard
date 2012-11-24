@@ -31,23 +31,32 @@ public class JFGraph extends JPanel{
 	private XYDataset dataset = new XYSeriesCollection(theData);
 	XYItemRenderer renderer0;	
 	XYItemRenderer renderer1;
-	
 	NumberAxis domain;
 	NumberAxis range;
 	private JFreeChart theChart;
 	private XYPlot plot;
 	private ChartPanel panel;
 	
-	public void addPair(double x, double y){
-		theData.add(x, y);
-	}
+	public void addPair(final double x, final double y){
+		java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				theData.add(x, y);
+		  }
+		});
+	} 
 	
+
+
 	public void addSeries(XYSeries newSeries){
 		seriesList.add(newSeries);
 	}
 	
 	public void clearData(){
-		theData.clear();
+		java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				theData.clear();
+		  }
+		});
 	}
 	
 	public double[] getPlotLimits(){
@@ -71,12 +80,20 @@ public class JFGraph extends JPanel{
 		return plot.getRangeAxis().getRange().getUpperBound();
 	}
 
-	public void setXrange(double xmin, double xmax){
-		plot.getDomainAxis().setRange(xmin, xmax);
+	public void setXrange(final double xmin, final double xmax){
+		java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				plot.getDomainAxis().setRange(xmin, xmax);
+		  }
+		});
 	}
 	
-	public void setYrange(double ymin, double ymax){
-		plot.getRangeAxis().setRange(ymin, ymax);
+	public void setYrange(final double ymin, final double ymax){
+		java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				plot.getRangeAxis().setRange(ymin, ymax);
+		  }
+		});
 	}
 	
 	
@@ -95,15 +112,6 @@ public class JFGraph extends JPanel{
 		range.setLabel(yAxisLabel);
 	}
 	
-	public void setRangeX(double low, double high){
-		plot.getDomainAxis().setRange(low, high);
-	}
-	
-	public void setRangeY(double low, double high){
-		plot.getRangeAxis().setRange(low, high);
-	}
-	
-	
 	public double getCurrentX(){
 		return (Double) theData.getX(theData.getItemCount()-1);
 	}
@@ -111,10 +119,13 @@ public class JFGraph extends JPanel{
 	public void useDataSeries(XYSeries dataSeries){
 		try {
 			theData = dataSeries.createCopy(0, dataSeries.getItemCount() - 1);
+			dataset = new XYSeriesCollection(theData);
 		} catch (CloneNotSupportedException e) {
 			e.printStackTrace();
 		}
+
 	}
+
 	
 	public void setShapesVisible(boolean shapes){
 		if(!shapes){

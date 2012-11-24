@@ -498,8 +498,8 @@ private void setPlotRange(){
 		txtYmax.setText(Double.toString(ymax = graph.getYmax()));
 	}
 	
-	graph.setRangeX(xmin, xmax);
-	graph.setRangeY(ymin, ymax);
+	graph.setXrange(xmin, xmax);
+	graph.setYrange(ymin, ymax);
 	
 }
 	
@@ -515,12 +515,15 @@ private void setPlotRange(){
 						: "null",
 				headerLabels.length >= graphYIndex  && graphYIndex > -1? headerLabels[graphYIndex]
 						: "null");
-		// XYSeries tempDataSeries = new XYSeries(0);
+//		XYSeries tempDataSeries = new XYSeries(0);
 
 		for (Float[] dataRow : dataList) {
-			if (graphXIndex <= dataRow.length && graphYIndex <= dataRow.length)
+			if (graphXIndex > -1 && graphYIndex > -1 && graphXIndex <= dataRow.length && graphYIndex <= dataRow.length)
+//				tempDataSeries.add(dataRow[graphXIndex], dataRow[graphYIndex]);
 				graph.addPair(dataRow[graphXIndex], dataRow[graphYIndex]);
 		}
+		//graph.useDataSeries(tempDataSeries);
+		
 		ignoreDropdownEvents = false;
 	}
 
@@ -657,11 +660,11 @@ private void parseString(String inputString, Tag tag) {
 				dataList.getLast()[graphYIndex]);
 		
 		if(radRoll.isSelected() &&  graphXIndex > -1)
-			graph.setRangeX((double)dataList.getLast()[graphXIndex] - rolltime, 
+			graph.setXrange((double)dataList.getLast()[graphXIndex] - rolltime, 
 					(double)dataList.getLast()[graphXIndex] + 0.01 * rolltime);		
 
 
-		//post values to LED displays according to the selected combo box entry.
+		//post values to LED displays according to their selected combo box entries.
 		for(int i = 0; i < ledPanels.size(); i++){
 			ledPanels.get(i).setNumber(newData[ledComboBoxes.get(i).getSelectedIndex()]);
 		}
