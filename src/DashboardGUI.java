@@ -377,15 +377,15 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			setGraph();
 			autoColumnSelect = false;
 		} 
-		else if(event.getSource().equals(xComboBox) && !ignoreDropdownEvents){
+		else if(event.getSource().equals(xComboBox)){
 			//System.out.println("xComboBox: " + event.getActionCommand());
 			setGraph();
-			autoColumnSelect = false;
+			//autoColumnSelect = false;
 		}
-		else if(event.getSource().equals(yComboBox) && !ignoreDropdownEvents){
+		else if(event.getSource().equals(yComboBox)){
 			//System.out.println("yComboBox: " + event.getActionCommand());
 			setGraph();
-			autoColumnSelect = false;			
+			//autoColumnSelect = false;			
 		}
 		else if (event.getSource().equals(startStopCollBtn)) {
 			// toggle data collection
@@ -426,18 +426,8 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		} 
 		else if(event.getSource().equals(chkGraphInstant)){
 			graph.setShapesVisible(chkGraphInstant.isSelected());
-//			if (chkGraphInstant.isSelected()){
-//				radManual.setSelected(true);
-//				for(JComponent component: manualList)
-//					component.setVisible(true);
-//				for(JComponent component: rollList)
-//					component.setVisible(false);
-//				txtXmin.setText(String.format("%.3f", graph.getXmin()));
-//				txtXmax.setText(String.format("%.3f", graph.getXmax()));
-//				txtYmin.setText(String.format("%.3f", graph.getYmin()));
-//				txtYmax.setText(String.format("%.3f", graph.getYmax()));				
-//			}
-			
+			if(!chkGraphInstant.isSelected())
+				setGraph();
 		}
 		else if(event.getSource().equals(txtRollTime)){
 			try{
@@ -557,18 +547,31 @@ private void setPlotRange(){
 						: "null");
 //		XYSeries tempDataSeries = new XYSeries(0);
 
-		for (double[] dataRow : dataList) {
-			if (graphXIndex > -1 && graphXIndex < dataRow.length){
-				// plot primary series
-				if (graphYIndex[0] > -1  && graphYIndex[0] <= dataRow.length)
-					graph.addPair(0, dataRow[graphXIndex], dataRow[graphYIndex[0]]);
+		double newSeries1[][] = new double[dataList.size()][2];
+		// copy old data into series
+		int j =0;
+		if (graphXIndex > -1 && graphYIndex[0] > -1){
+			for(double[] row : dataList){
+				newSeries1[j][0] = row[graphXIndex];
+				newSeries1[j][1] = row[graphYIndex[0]];
+				j++;
+			}
+			// update primary plot
+			graph.addTrace(0, newSeries1);
+		}
+		// update other series plots
+		for(int i = 1; i < numSeriesPlots; i++){
+			graphYIndex[i] = ledComboBoxes.get(i-1).getSelectedIndex();
+			if (ledCheckBoxes.get(i-1).isSelected() && graphYIndex[i] > -1){
+				double newSeries2[][] = new double[dataList.size()][2];
 
-				// plot rest of series
-				for(int i = 1; i < numSeriesPlots; i++){
-					if (ledCheckBoxes.get(i-1).isSelected() && graphYIndex[i] > -1 
-							&& graphYIndex[i] <= dataRow.length)
-						graph.addPair(i, dataRow[graphXIndex], dataRow[graphYIndex[i]]);
+				j = 0;
+				for (double[] row : dataList) {
+					newSeries2[j][0] = row[graphXIndex];
+					newSeries2[j][1] = row[graphYIndex[i]];
+					j++;				
 				}
+			graph.addTrace(i, newSeries2);
 			}
 		}
 

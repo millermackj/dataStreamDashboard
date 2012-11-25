@@ -43,7 +43,8 @@ public class JFGraph extends JPanel{
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try{
-				for(int i = 0; i < series.length; i++)
+					seriesList.get(seriesNum).clear();
+					for(int i = 0; i < series.length; i++)
 					seriesList.get(seriesNum).add(series[i][0], series[i][1]);
 				}
 				catch (Exception e) {
