@@ -158,7 +158,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		// for upper panel, below top row
 		graph = new JFGraph("", "", "" ,5); // 5 series plot
 		// graph.useDataSeries(dataSeries);
-
+		
 		upperPanel.add(saveButton);
 		upperPanel.add(startStopCollBtn);
 		upperPanel.add(resetConnectionBtn);
@@ -166,6 +166,8 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		// objects in graph select panel
 		xComboBox = new JComboBox();
 		yComboBox = new JComboBox();
+		yComboBox.setForeground(graph.getColors().get(0));
+		
 		JLabel xComboLabel = new JLabel("X-data:");
 		JLabel yComboLabel = new JLabel("Y-data:");
 		
@@ -343,7 +345,9 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			ledComboBoxes.add(new JComboBox());
 			ledComboBoxes.get(i).addActionListener(this);
 			ledCheckBoxes.add(new JCheckBox());
+			ledComboBoxes.get(i).setForeground(graph.getColors().get(i+1));
 			ledCheckBoxes.get(i).addActionListener(this);
+			
 			
 			// add combo box to display panel
 			panelRows.add(new JPanel());
@@ -465,29 +469,36 @@ public class DashboardGUI extends JFrame implements ActionListener,
 				|| event.getSource().equals(txtYmax)){
 			setPlotRange();
 		}
-		else if(event.getSource().getClass().equals(ledCheckBoxes.get(0).getClass())){
+		else if(event.getSource().getClass().equals(ledCheckBoxes.get(0).getClass())
+				|| event.getSource().getClass().equals(ledComboBoxes.get(0).getClass())){
 			for(int i = 0; i < ledCheckBoxes.size(); i++){
-				// if the combo box selection is valid, and either the checkbox is 
-				// selected but wasn't before, or the trace selection has changed				
-				if( ledComboBoxes.get(i).getSelectedIndex() > -1 &&
-						((ledCheckBoxes.get(i).isSelected() && !checkedSeries[i])
-						|| (graphYIndex[i+1] != ledComboBoxes.get(i).getSelectedIndex()))){
-
+				// if the checkbox is selected and the combobox selection is valid,
+				// and either the checkbox wasn't selected before or the combobox 
+				// selection has changed				
+				if(ledCheckBoxes.get(i).isSelected() 
+						&& ledComboBoxes.get(i).getSelectedIndex() > -1 
+						&& (!checkedSeries[i] 
+								|| (graphYIndex[i+1] != ledComboBoxes.get(i).getSelectedIndex()))){
 					graphYIndex[i+1] = ledComboBoxes.get(i).getSelectedIndex();
-					graph.clearData(i);
+					graph.clearData(i+1);
 
+					double newSeries[][] = new double[dataList.size()][2];
 					// copy old data into series
+					int j =0;
 					for(double[] row : dataList){
-						graph.addPair(i+1, row[graphXIndex], row[graphYIndex[i+1]]);
-					}
-
+						newSeries[j][0] = row[graphXIndex];
+						newSeries[j][1] = row[graphYIndex[i+1]];
+						j++;
+					}					
+					graph.addTrace(i+1, newSeries);
 				}
 				// if checkbox is unselected or combo box selection is invalid
 				else if(!ledCheckBoxes.get(i).isSelected() 
-						|| ledComboBoxes.get(i).getSelectedIndex() == -1 
-						|| ledComboBoxes.get(i).getSelectedIndex() >= numSeriesPlots){ 
+						|| ledComboBoxes.get(i).getSelectedIndex() == -1){ 
 					graph.clearData(i+1);
 				}
+				checkedSeries[i] = ledCheckBoxes.get(i).isSelected();
+				graphYIndex[i+1] = ledComboBoxes.get(i).getSelectedIndex();
 			}
 		}
 		

@@ -37,6 +37,22 @@ public class JFGraph extends JPanel{
 	private JFreeChart theChart;
 	private XYPlot plot;
 	private ChartPanel panel;
+	private ArrayList<Color> plotColors;
+	
+	public void addTrace(final int seriesNum, final double[][] series){
+		java.awt.EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try{
+				for(int i = 0; i < series.length; i++)
+					seriesList.get(seriesNum).add(series[i][0], series[i][1]);
+				}
+				catch (Exception e) {
+				}
+		  }
+		});
+
+		
+	}
 	
 	public void addPair(final int seriesNum, final double x, final double y){
 		java.awt.EventQueue.invokeLater(new Runnable() {
@@ -127,15 +143,19 @@ public class JFGraph extends JPanel{
 			plot.setRenderer(lineRenderer);
 	}
 	
+	public ArrayList<Color> getColors(){
+		return plotColors;
+	}
+	
 	public JFGraph(String graphTitle, String xAxisLabel, String yAxisLabel, int numSeries){
 		this.numSeries = numSeries;
 		// list of series colors
-		ArrayList<Color> plotColors = new ArrayList<Color>(numSeries);
+		plotColors = new ArrayList<Color>(numSeries);
 		plotColors.add(Color.red);
-		plotColors.add(Color.orange);
-		plotColors.add(Color.green);
+		plotColors.add(new Color(0x419106));
 		plotColors.add(Color.blue);
 		plotColors.add(Color.magenta);
+		plotColors.add(new Color(0x806010));
 		
 		this.graphTitle = graphTitle;
 		this.xAxisLabel = xAxisLabel;
