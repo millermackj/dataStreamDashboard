@@ -3,6 +3,7 @@ package graphing;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Shape;
+import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.swing.BorderFactory;
@@ -26,35 +27,41 @@ import org.jfree.ui.RectangleInsets;
 public class JFGraph extends JPanel{
 
 	String graphTitle, xAxisLabel, yAxisLabel;
-	private LinkedBlockingQueue<XYSeries> seriesList;
-	private XYSeries theData = new XYSeries(0);
-	private XYDataset dataset = new XYSeriesCollection(theData);
-	XYItemRenderer renderer0;	
-	XYItemRenderer renderer1;
+	private ArrayList<XYSeries> seriesList;
+	private int numSeries = 5; // number of xy series sets 
+	private XYSeriesCollection dataset;
+	private XYItemRenderer lineRenderer;
+	private XYItemRenderer markerRenderer;
 	NumberAxis domain;
 	NumberAxis range;
 	private JFreeChart theChart;
 	private XYPlot plot;
 	private ChartPanel panel;
 	
-	public void addPair(final double x, final double y){
+	public void addPair(final int seriesNum, final double x, final double y){
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				theData.add(x, y);
+				try{
+				seriesList.get(seriesNum).add(x, y);
+				}
+				catch (Exception e) {
+				}
 		  }
 		});
 	} 
 	
-
-
 	public void addSeries(XYSeries newSeries){
 		seriesList.add(newSeries);
 	}
 	
-	public void clearData(){
+	public void clearData(final int seriesNum){
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				theData.clear();
+				try{
+					seriesList.get(seriesNum).clear();
+				}
+				catch (Exception e) {
+				}
 		  }
 		});
 	}
@@ -112,33 +119,41 @@ public class JFGraph extends JPanel{
 		range.setLabel(yAxisLabel);
 	}
 	
-	public double getCurrentX(){
-		return (Double) theData.getX(theData.getItemCount()-1);
-	}
-	
-	public void useDataSeries(XYSeries dataSeries){
-		try {
-			theData = dataSeries.createCopy(0, dataSeries.getItemCount() - 1);
-			dataset = new XYSeriesCollection(theData);
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-		}
-
-	}
-
-	
 	public void setShapesVisible(boolean shapes){
-		if(!shapes){
-			plot.setRenderer(renderer0);
+		if(shapes){
+			plot.setRenderer(markerRenderer);
 		}
 		else
-			plot.setRenderer(renderer1);
+			plot.setRenderer(lineRenderer);
 	}
 	
-	public JFGraph(String graphTitle, String xAxisLabel, String yAxisLabel){
+	public JFGraph(String graphTitle, String xAxisLabel, String yAxisLabel, int numSeries){
+		this.numSeries = numSeries;
+		// list of series colors
+		ArrayList<Color> plotColors = new ArrayList<Color>(numSeries);
+		plotColors.add(Color.red);
+		plotColors.add(Color.orange);
+		plotColors.add(Color.green);
+		plotColors.add(Color.blue);
+		plotColors.add(Color.magenta);
+		
 		this.graphTitle = graphTitle;
 		this.xAxisLabel = xAxisLabel;
 		this.yAxisLabel = yAxisLabel;
+		
+		seriesList = new ArrayList<XYSeries>(numSeries);
+		dataset = new XYSeriesCollection();
+		
+		lineRenderer = new XYLineAndShapeRenderer(true, false);
+		markerRenderer = new XYLineAndShapeRenderer(true, true);
+		
+		// populate list of xy series
+		for(int i = 0; i < numSeries; i++){
+			seriesList.add(new XYSeries(i));
+			dataset.addSeries(seriesList.get(i));
+			lineRenderer.setSeriesPaint(i, plotColors.get(i));
+			markerRenderer.setSeriesPaint(i, plotColors.get(i));
+		}
 		
 		domain = new NumberAxis(xAxisLabel);
 		range = new NumberAxis(yAxisLabel); 
@@ -146,14 +161,9 @@ public class JFGraph extends JPanel{
 		range.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 12));
 		domain.setLabelFont(new Font("SansSerif", Font.PLAIN, 14));
 		range.setLabelFont(new Font("SansSerif", Font.PLAIN, 14));
+				
+		plot = new XYPlot(dataset, domain, range, lineRenderer);
 		
-		renderer0 = new XYLineAndShapeRenderer(true, false);
-		renderer0.setSeriesPaint(0, Color.red);
-		
-		renderer1 = new XYLineAndShapeRenderer(true, true);
-		renderer1.setSeriesPaint(0, Color.blue);
-		
-		plot = new XYPlot(dataset, domain, range, renderer0); 
 		plot.setDomainZeroBaselineVisible(true);
 		plot.setRangeZeroBaselineVisible(true);
 		plot.setBackgroundPaint(Color.lightGray); 

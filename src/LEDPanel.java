@@ -25,7 +25,7 @@ public class LEDPanel extends JPanel{
 	
 	int numDigits;
 	int decimalPlace;
-	float currentNumber;
+	double currentNumber;
 	// create image icons for each digit
 	static void populateDigits() throws IOException{
 		digits = new ArrayList<ArrayList<ImageIcon>>(2);
@@ -75,7 +75,7 @@ public class LEDPanel extends JPanel{
 		}
 	}
 	
-	public void setNumber(float number){
+	public void setNumber(double number){
 		if(number != currentNumber || firstRun){
 			currentNumber = number;
 //			if (number == 0.0){

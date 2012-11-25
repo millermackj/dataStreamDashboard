@@ -26,7 +26,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private static final long serialVersionUID = 1L;
 	private String[] headerLabels;
 	private String[] unitsLabels;
-	private LinkedBlockingDeque<Float[]> dataList;
+	private LinkedBlockingDeque<double[]> dataList;
 	private JScrollPane scrollPane;
 	private JTextArea textArea;
 	private JScrollPane msgScrollPane;
@@ -74,15 +74,14 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	private ArrayList<LEDPanel> ledPanels;
 	private int numLEDDisplays = 4;
 	private int numLEDDigits = 4;
+	private int numSeriesPlots = numLEDDisplays + 1; // max concurrent plots
 	private boolean settingsSaved = false;
 	private int[] dropDownSettings;
 	private boolean noHeader = true;
 	private boolean autoColumnSelect = true;
 	private File saveDirectory = new File(""); // directory where last file was saved
 	private boolean ignoreDropdownEvents = true;
-	
-	private ArrayList<Integer> selectedYtraces;
-	
+	private boolean checkedSeries[] = new boolean[numLEDDisplays];
 	// an enumeration of tags
 	private enum Tag {
 		HEADER("<h>"), UNITS("<u>"), ROW("<r>"), MESSAGE("<m>");
@@ -99,7 +98,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 	}
 
 	private int graphXIndex = 0;
-	private int graphYIndex = 0;
+	private int graphYIndex[] = new int[numSeriesPlots];
 
 	private double rolltime = 10;
 	
@@ -109,7 +108,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			ArrayBlockingQueue<String> outputBuffer,
 			SerialCommunicator serialComm) throws IOException {
 		this.outputBuffer = outputBuffer;
-		dataList = new LinkedBlockingDeque<Float[]>();
+		dataList = new LinkedBlockingDeque<double[]>();
 		this.setSize(width, height);
 		initialize();
 		this.serialComm = serialComm;
@@ -157,7 +156,7 @@ public class DashboardGUI extends JFrame implements ActionListener,
 		resetConnectionBtn = new JButton("Reset Connection");
 		resetConnectionBtn.addActionListener(this);
 		// for upper panel, below top row
-		graph = new JFGraph("", "", "");
+		graph = new JFGraph("", "", "" ,5); // 5 series plot
 		// graph.useDataSeries(dataSeries);
 
 		upperPanel.add(saveButton);
@@ -405,10 +404,12 @@ public class DashboardGUI extends JFrame implements ActionListener,
 			
 			settingsSaved = true;
 			
-			// reset graph
-			graph.clearData();
+			// reset graphs
+			for(int i = 0; i < numSeriesPlots; i++)
+				graph.clearData(i);
+			
 			// delete data list
-			dataList = new LinkedBlockingDeque<Float[]>();
+			dataList = new LinkedBlockingDeque<double[]>();
 			// clear text and message areas
 			textArea.setText("");
 			messageArea.setText("");
@@ -464,6 +465,31 @@ public class DashboardGUI extends JFrame implements ActionListener,
 				|| event.getSource().equals(txtYmax)){
 			setPlotRange();
 		}
+		else if(event.getSource().getClass().equals(ledCheckBoxes.get(0).getClass())){
+			for(int i = 0; i < ledCheckBoxes.size(); i++){
+				// if the combo box selection is valid, and either the checkbox is 
+				// selected but wasn't before, or the trace selection has changed				
+				if( ledComboBoxes.get(i).getSelectedIndex() > -1 &&
+						((ledCheckBoxes.get(i).isSelected() && !checkedSeries[i])
+						|| (graphYIndex[i+1] != ledComboBoxes.get(i).getSelectedIndex()))){
+
+					graphYIndex[i+1] = ledComboBoxes.get(i).getSelectedIndex();
+					graph.clearData(i);
+
+					// copy old data into series
+					for(double[] row : dataList){
+						graph.addPair(i+1, row[graphXIndex], row[graphYIndex[i+1]]);
+					}
+
+				}
+				// if checkbox is unselected or combo box selection is invalid
+				else if(!ledCheckBoxes.get(i).isSelected() 
+						|| ledComboBoxes.get(i).getSelectedIndex() == -1 
+						|| ledComboBoxes.get(i).getSelectedIndex() >= numSeriesPlots){ 
+					graph.clearData(i+1);
+				}
+			}
+		}
 		
 	}
 	
@@ -505,25 +531,36 @@ private void setPlotRange(){
 	
 	private void setGraph() {
 		ignoreDropdownEvents = true;
+		// set primary series
 		graphXIndex = xComboBox.getSelectedIndex();
-		graphYIndex = yComboBox.getSelectedIndex();
+		graphYIndex[0] = yComboBox.getSelectedIndex();
 
 		// set labels on graph to selected columns from combo box
-		graph.clearData();
+		for(int i = 0; i < numSeriesPlots; i++)
+			graph.clearData(i);
+		
 		graph.setAxisLabels(
 				headerLabels.length >= graphXIndex && graphXIndex > -1? headerLabels[graphXIndex]
 						: "null",
-				headerLabels.length >= graphYIndex  && graphYIndex > -1? headerLabels[graphYIndex]
+				headerLabels.length >= graphYIndex[0]  && graphYIndex[0] > -1? headerLabels[graphYIndex[0]]
 						: "null");
 //		XYSeries tempDataSeries = new XYSeries(0);
 
-		for (Float[] dataRow : dataList) {
-			if (graphXIndex > -1 && graphYIndex > -1 && graphXIndex <= dataRow.length && graphYIndex <= dataRow.length)
-//				tempDataSeries.add(dataRow[graphXIndex], dataRow[graphYIndex]);
-				graph.addPair(dataRow[graphXIndex], dataRow[graphYIndex]);
+		for (double[] dataRow : dataList) {
+			if (graphXIndex > -1 && graphXIndex < dataRow.length){
+				// plot primary series
+				if (graphYIndex[0] > -1  && graphYIndex[0] <= dataRow.length)
+					graph.addPair(0, dataRow[graphXIndex], dataRow[graphYIndex[0]]);
+
+				// plot rest of series
+				for(int i = 1; i < numSeriesPlots; i++){
+					if (ledCheckBoxes.get(i-1).isSelected() && graphYIndex[i] > -1 
+							&& graphYIndex[i] <= dataRow.length)
+						graph.addPair(i, dataRow[graphXIndex], dataRow[graphYIndex[i]]);
+				}
+			}
 		}
-		//graph.useDataSeries(tempDataSeries);
-		
+
 		ignoreDropdownEvents = false;
 	}
 
@@ -636,7 +673,7 @@ private void parseString(String inputString, Tag tag) {
 			
 		}
 		
-		Float[] newData = new Float[inputArray.length];
+		double[] newData = new double[inputArray.length];
 		for (int i = 0; i < inputArray.length; i++) {
 			try {
 				// convert the strings into floats
@@ -652,19 +689,29 @@ private void parseString(String inputString, Tag tag) {
 		// graph selected values
 		
 		if(chkGraphInstant.isSelected()){
-			graph.clearData();
+			for(int i = 0; i < numSeriesPlots; i++)
+				graph.clearData(i);
 		}
-
-		if(graphXIndex > -1 && graphYIndex > -1)
-		graph.addPair(dataList.getLast()[graphXIndex],
-				dataList.getLast()[graphYIndex]);
-		
 		if(radRoll.isSelected() &&  graphXIndex > -1)
 			graph.setXrange((double)dataList.getLast()[graphXIndex] - rolltime, 
-					(double)dataList.getLast()[graphXIndex] + 0.01 * rolltime);		
+					(double)dataList.getLast()[graphXIndex] + 0.01 * rolltime);
 
+		
+		// send primary series values
+		if (graphXIndex > -1 && graphXIndex < newData.length){
+			// plot primary series
+			if (graphYIndex[0] > -1  && graphYIndex[0] <= newData.length)
+				graph.addPair(0, newData[graphXIndex], newData[graphYIndex[0]]);
 
-		//post values to LED displays according to their selected combo box entries.
+			// send rest of series values
+			for(int i = 1; i < numSeriesPlots; i++){
+				if (ledCheckBoxes.get(i-1).isSelected() && graphYIndex[i] > -1 
+						&& graphYIndex[i] <= newData.length)
+					graph.addPair(i, newData[graphXIndex], newData[graphYIndex[i]]);
+			}
+		}
+
+			//post values to LED displays according to their selected combo box entries.
 		for(int i = 0; i < ledPanels.size(); i++){
 			ledPanels.get(i).setNumber(newData[ledComboBoxes.get(i).getSelectedIndex()]);
 		}
@@ -688,7 +735,8 @@ private void parseString(String inputString, Tag tag) {
 
 public void clearData() {
 	dataList.clear();
-	graph.clearData();
+	for(int i = 0; i < numSeriesPlots; i++)
+		graph.clearData(i);
 }
 
 public void saveInput() {
@@ -710,9 +758,9 @@ public void saveInput() {
 					+ "\n");
 
 			// write all data to the file
-			for (Float[] row : dataList) {
+			for (double[] row : dataList) {
 				strBuilder = new StringBuilder();
-				for (Float column : row) {
+				for (double column : row) {
 					strBuilder.append(String.valueOf(column));
 					strBuilder.append(",");
 				}
